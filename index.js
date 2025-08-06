@@ -12,12 +12,8 @@ app.use(cors())
 app.use(express.json())
 
 // File storage setup
-const storage = multer.diskStorage({
-    destination: "uploads/",
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname))
-    },
-})
+const storage = multer.memoryStorage()
+
 const upload = multer({ storage })
 
 // Nodemailer config
@@ -46,11 +42,11 @@ app.post("/send-email", upload.single("pdf"), async (req, res) => {
             text: body,
             attachments: attachment
                 ? [
-                      {
-                          filename: attachment.originalname,
-                          path: attachment.path,
-                      },
-                  ]
+                    {
+                        filename: attachment.originalname,
+                        content: attachment.buffer,
+                    },
+                ]
                 : [],
         }
 
