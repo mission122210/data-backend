@@ -21,7 +21,11 @@ app.use(express.json())
 // File storage setup
 const storage = multer.memoryStorage()
 
-const upload = multer({ storage })
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 6 * 1024 * 1024 } // 4MB
+})
+
 
 // Nodemailer config
 const transporter = nodemailer.createTransport({
@@ -48,22 +52,26 @@ app.post("/send-email", upload.single("pdf"), async (req, res) => {
             subject,
             text: body,
             attachments: attachment
-                ? [
-                    {
-                        filename: attachment.originalname,
-                        content: attachment.buffer,
-                    },
-                ]
+                ? [{
+                    filename: attachment.originalname,
+                    content: attachment.buffer,
+                }]
                 : [],
         }
 
         await transporter.sendMail(mailOptions)
         res.status(200).json({ success: true, message: "Email sent successfully" })
+
     } catch (error) {
+        if (error.code === 'LIMIT_FILE_SIZE') {
+            return res.status(413).json({ success: false, message: "File too large. Max 6MB allowed." })
+        }
+
         console.error("Email error:", error)
         res.status(500).json({ success: false, message: "Failed to send email" })
     }
 })
+
 
 app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`)
